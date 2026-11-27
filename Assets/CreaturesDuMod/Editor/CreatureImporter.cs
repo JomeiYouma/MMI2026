@@ -1,7 +1,7 @@
-// Construit le prefab d'une créature du mod Explosive Fishing à partir de <Nom>.creature.json (exporté par exporter_unity.py) :
-// une pièce = un GameObject posé sur son pivot (on peut l'animer en la faisant tourner), maillages, matériau URP aux pixels nets,
-// clips d'animation tirés des poses du mod et un Animator Controller prêt à l'emploi.
-// Le prefab se construit tout seul s'il manque ; menu Tools > Créatures du mod > Reconstruire pour le refaire.
+// Builds the prefab of an Explosive Fishing mod creature from <Name>.creature.json (exported by exporter_unity.py):
+// one part = one GameObject placed on its pivot (it can be animated by rotating it), meshes, a crisp-pixel URP material,
+// animation clips taken from the mod's poses and a ready-to-use Animator Controller.
+// The prefab builds itself if missing; use the Tools > Créatures du mod > Reconstruire menu to rebuild it.
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -48,7 +48,7 @@ public static class CreatureImporter
         var data = JsonUtility.FromJson<Data>(File.ReadAllText(jsonPath));
         var n = data.name;
 
-        // Textures : pixels nets, sans compression ni mipmaps, comme dans le jeu
+        // Textures: crisp pixels, no compression or mipmaps, as in the game
         var tex = ImportPixelTexture($"{dir}/{data.texture}");
         var emi = string.IsNullOrEmpty(data.emission) ? null : ImportPixelTexture($"{dir}/{data.emission}");
 
@@ -60,7 +60,7 @@ public static class CreatureImporter
         mat.name = n;
         AssetDatabase.CreateAsset(mat, $"{dir}/{n}.mat");
 
-        // Hiérarchie des pièces
+        // Part hierarchy
         var top = new GameObject(n);
         var gos = new GameObject[data.nodes.Length];
         var paths = new string[data.nodes.Length];
@@ -92,7 +92,7 @@ public static class CreatureImporter
         AssetDatabase.CreateAsset(meshes[0], meshPath);
         for (int i = 1; i < meshes.Count; i++) AssetDatabase.AddObjectToAsset(meshes[i], meshPath);
 
-        // Clips et Animator Controller
+        // Clips and Animator Controller
         AnimatorController ctrl = null;
         if (data.clips != null && data.clips.Length > 0)
         {
@@ -115,7 +115,7 @@ public static class CreatureImporter
                 if (kv.Value.st == idle) continue;
                 if (kv.Value.loop)
                 {
-                    // Boucles (marche, charge) : un booléen du même nom
+                    // Loops (walk, charge): a bool parameter with the same name
                     ctrl.AddParameter(kv.Key, AnimatorControllerParameterType.Bool);
                     var go = idle.AddTransition(kv.Value.st); go.hasExitTime = false; go.duration = 0.2f;
                     go.AddCondition(AnimatorConditionMode.If, 0, kv.Key);
@@ -124,7 +124,7 @@ public static class CreatureImporter
                 }
                 else
                 {
-                    // Gestes (frappe, rugissement...) : un déclencheur du même nom, retour au repos à la fin du geste
+                    // Gestures (strike, roar...): a trigger with the same name, back to idle when the gesture ends
                     ctrl.AddParameter(kv.Key, AnimatorControllerParameterType.Trigger);
                     var go = sm.AddAnyStateTransition(kv.Value.st); go.hasExitTime = false; go.duration = 0.1f; go.canTransitionToSelf = false;
                     go.AddCondition(AnimatorConditionMode.If, 0, kv.Key);
@@ -164,7 +164,7 @@ public static class CreatureImporter
         mat.mainTexture = tex;
         if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
         if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
-        // Découpe nette des pixels transparents, faces visibles des deux côtés (pans de poils sans épaisseur)
+        // Hard cutout of transparent pixels, faces visible from both sides (zero-thickness fur planes)
         if (mat.HasProperty("_AlphaClip")) mat.SetFloat("_AlphaClip", 1f);
         mat.SetFloat("_Cutoff", 0.5f);
         mat.EnableKeyword("_ALPHATEST_ON");
@@ -216,7 +216,7 @@ public static class CreatureImporter
 
     static Vector3 V3(float[] a, int i) => new Vector3(a[i], a[i + 1], a[i + 2]);
 
-    // Rendus de contrôle dans Temp/<Nom>_apercu_<pose>.png (trois-quarts avant), sans toucher à la scène ouverte
+    // Check renders to Temp/<Name>_apercu_<pose>.png (front three-quarter view), without touching the open scene
     static void Preview(string prefabPath, string n)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
